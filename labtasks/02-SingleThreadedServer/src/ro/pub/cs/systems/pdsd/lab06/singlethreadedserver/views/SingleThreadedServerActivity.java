@@ -84,20 +84,51 @@ public class SingleThreadedServerActivity extends Activity {
 		
 		@Override
 		public void run() {
-			try {
-				serverSocket = new ServerSocket(Constants.SERVER_PORT);
-				while (isRunning) {
-					Socket socket = serverSocket.accept();
-					Log.v(Constants.TAG, "Connection opened with "+socket.getInetAddress()+":"+socket.getLocalPort());
-					PrintWriter printWriter = Utilities.getWriter(socket);
-					printWriter.println(serverTextEditText.getText().toString());
-					socket.close();
-					Log.v(Constants.TAG, "Connection closed");
+				try {
+					serverSocket = new ServerSocket(Constants.SERVER_PORT);
+				} 
+				catch (IOException ioException) {
+					Log.e(Constants.TAG, "An exception has occurred: "+ioException.getMessage());
+					if (Constants.DEBUG) {
+						ioException.printStackTrace();
+					}
 				}
-			} catch (IOException ioException) {
-				Log.e(Constants.TAG, "An exception has occurred: "+ioException.getMessage());
-				if (Constants.DEBUG) {
-					ioException.printStackTrace();
+				while (isRunning) {
+					try {
+						final Socket socket = serverSocket.accept();
+						new Thread(new Runnable() {
+							@Override
+							public void run() {
+								try {
+							
+										Log.v(Constants.TAG, "Connection opened with "+socket.getInetAddress()+":"+socket.getLocalPort());
+										try {
+											  Thread.sleep(3000);
+											} catch (InterruptedException interruptedException) {
+											  Log.e(Constants.TAG, interruptedException.getMessage());
+											  if (Constants.DEBUG) {
+											    interruptedException.printStackTrace();
+											  }
+											}
+										PrintWriter printWriter = Utilities.getWriter(socket);
+										printWriter.println(serverTextEditText.getText().toString());
+										socket.close();
+										Log.v(Constants.TAG, "Connection closed");
+									}
+								catch (IOException ioException) {
+										Log.e(Constants.TAG, "An exception has occurred: "+ioException.getMessage());
+										if (Constants.DEBUG) {
+											ioException.printStackTrace();
+										}
+									}
+							}
+					}).start();
+				}
+				catch (IOException ioException) {
+						Log.e(Constants.TAG, "An exception has occurred: "+ioException.getMessage());
+						if (Constants.DEBUG) {
+							ioException.printStackTrace();
+						}
 				}
 			}
 		}
@@ -129,5 +160,11 @@ public class SingleThreadedServerActivity extends Activity {
 			return true;
 		}
 		return super.onOptionsItemSelected(item);
+	}
+	
+	@Override
+	public void onDestroy() {
+	  super.onDestroy();
+	  singleThreadedServer.stopServer();
 	}
 }

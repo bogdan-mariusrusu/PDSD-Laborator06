@@ -1,7 +1,11 @@
 package ro.pub.cs.systems.pdsd.lab06.ftpserverwelcomemessage.views;
 
+import java.io.BufferedReader;
+import java.net.Socket;
+
 import ro.pub.cs.systems.pdsd.lab06.ftpserverwelcomemessage.R;
 import ro.pub.cs.systems.pdsd.lab06.ftpserverwelcomemessage.general.Constants;
+import ro.pub.cs.systems.pdsd.lab06.ftpserverwelcomemessage.general.Utilities;
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
@@ -22,15 +26,38 @@ public class FTPServerWelcomeMessageActivity extends Activity {
 		@Override
 		public void run() {
 			try {
-				
+				welcomeMessageTextView.post(new Runnable() {
+					@Override
+					public void run() {
+						welcomeMessageTextView.setText("");
+					}
+				});
 				// TODO: exercise 4
 				// open socket with FTPServerAddress (taken from FTPServerAddressEditText edit text) and port (Constants.FTP_PORT = 21)
+				Socket socket = new Socket(FTPServerAddressEditText.getText().toString(), Constants.FTP_PORT );
 				// get the BufferedReader attached to the socket (call to the Utilities.getReader() method)
+				BufferedReader bufferedReader = Utilities.getReader(socket);
 				// should the line start with Constants.FTP_MULTILINE_START_CODE, the welcome message is processed
-				// read lines from server while 
-				// - the value is different from Constants.FTP_MULTILINE_END_CODE1
-				// - the value does not start with Constants.FTP_MULTILINE_START_CODE2
-				// append the line to the welcomeMessageTextView text view content (on the UI thread!!!)
+				String line = bufferedReader.readLine();
+				if (line.startsWith(Constants.FTP_MULTILINE_START_CODE)) {
+					// read lines from server while 
+					// - the value is different from Constants.FTP_MULTILINE_END_CODE1
+					// - the value does not start with Constants.FTP_MULTILINE_START_CODE2
+					// append the line to the welcomeMessageTextView text view content (on the UI thread!!!)
+					line = bufferedReader.readLine();
+					while (line != null && (!line.equals(Constants.FTP_MULTILINE_END_CODE1) &&
+											!line.startsWith(Constants.FTP_MULTILINE_END_CODE2))) {
+						final String finalLine = line;
+						welcomeMessageTextView.post(new Runnable() {
+							@Override
+							public void run() {
+								welcomeMessageTextView.append(finalLine);
+							}
+						});
+						line = bufferedReader.readLine();
+					}
+				}
+				socket.close();
 				// close the socket
 
 			} catch (Exception exception) {
